@@ -34,6 +34,31 @@ async function run() {
             res.send(items);
         });
 
+        app.get('/items', async (req, res) => {
+            console.log('query', req.query);
+            const page = parseInt(req.query.page);
+            const size = parseInt(req.query.size);
+
+            const query = {};
+            const cursor = itemsCollection.find(query);
+            let products;
+            if (page || size) {
+                // 0 --> skip: 0 get: 0-10(10);
+                // 1 --> skip: 1*10 get: 11-20(10);
+                // 2 --> skip: 2*10 get: 21-30(10);
+                products = await cursor.skip(page * size).limit(size).toArray();
+            }
+            else {
+                products = await cursor.toArray();
+            }
+            res.send(products);
+        });
+
+        app.get('/productCount', async (req, res) => {
+            const count = await itemsCollection.estimatedDocumentCount();
+            res.send({ count });
+        });
+
         // Post
         app.post('/items', async (req, res) => {
             const newItems = req.body;
@@ -57,7 +82,6 @@ async function run() {
         //     res.send(result);
         // })
 
-        // Delete
         app.delete('/items/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
